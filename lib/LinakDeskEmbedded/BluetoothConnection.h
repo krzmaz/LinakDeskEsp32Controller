@@ -1,25 +1,30 @@
 #pragma once
 
-#include <BLEDevice.h>
-#include <optional>
 #include <memory>
+#include <optional>
 #include <string>
+
+#include <BLEDevice.h>
 
 #include "ConnectionInterface.h"
 
 namespace LinakDesk {
 class BluetoothConnection : public ConnectionInterface {
   public:
-    explicit BluetoothConnection(const std::string& bluetoothAddress);
+    explicit BluetoothConnection();
     ~BluetoothConnection();
+    bool connect(const std::string& bluetoothAddress) override;
+    void disconnect() const override;
     bool isConnected() const override;
     unsigned short getHeight() const override;
-    // void attachHeightSpeedCallback(std::function<void(HeightSpeedData)> callback) override;
+    void attachHeightSpeedCallback(std::optional<std::function<void(HeightSpeedData)>> callback) const override;
     void startMoveTorwards() const override;
     void moveTorwards(unsigned short height) const override;
     void stopMove() const override;
 
-    // static std::optional<std::function<void(HeightSpeedData)>> mCallback;
+    // BLE library allows only one callback to be attached, so we might as well make it static
+    static std::optional<std::function<void(HeightSpeedData)>> sHeightSpeedCallback;
+
   private:
     // mimic the calls done by LinakDeskApp after connection
     void setupDesk() const;
@@ -28,8 +33,6 @@ class BluetoothConnection : public ConnectionInterface {
 
     void writeUInt16(BLERemoteCharacteristic* charcteristic, unsigned short value) const;
 
-    // void adapterCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData,
-    //                                          size_t length, bool isNotify);
     std::unique_ptr<BLEClient> mBleClient;
     bool mIsConnected = false;
 
