@@ -123,6 +123,7 @@ void BluetoothConnection::setupDesk() const {
     dpgChar->writeValue(data, 3);
     Serial.println("Dpg response:");
     printStringAsHex(dpgChar->readValue());
+    dpgChar->registerForNotify(nullptr);
 }
 
 void BluetoothConnection::queryName() const {
@@ -151,16 +152,14 @@ void BluetoothConnection::moveTorwards(unsigned short height) const {
     printStringAsHex(mInputChar->readValue());
 }
 
-void BluetoothConnection::attachHeightSpeedCallback(std::optional<std::function<void(HeightSpeedData)>> callback) const {
-    if(callback){
-        sHeightSpeedCallback = callback;
-        mOutputChar->registerForNotify(adapterCallback);
-    }
-    else{
-        // deregister
-        sHeightSpeedCallback = {};
-        mOutputChar->registerForNotify(nullptr);
-    }
+void BluetoothConnection::attachHeightSpeedCallback(const std::function<void(const HeightSpeedData&)>& callback) const {
+    sHeightSpeedCallback = callback;
+    mOutputChar->registerForNotify(adapterCallback);
+}
+
+void BluetoothConnection::detachHeightSpeedCallback() const {
+    sHeightSpeedCallback = {};
+    mOutputChar->registerForNotify(nullptr);
 }
 
 void BluetoothConnection::stopMove() const {

@@ -17,7 +17,8 @@ class BluetoothConnection : public ConnectionInterface {
     void disconnect() const override;
     bool isConnected() const override;
     unsigned short getHeight() const override;
-    void attachHeightSpeedCallback(std::optional<std::function<void(HeightSpeedData)>> callback) const override;
+    void attachHeightSpeedCallback(const std::function<void(const HeightSpeedData&)>& callback) const override;
+    void detachHeightSpeedCallback() const override;
     void startMoveTorwards() const override;
     void moveTorwards(unsigned short height) const override;
     void stopMove() const override;

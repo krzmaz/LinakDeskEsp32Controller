@@ -11,7 +11,8 @@ class ConnectionMock : public ConnectionInterface {
     MOCK_CONST_METHOD0(disconnect, void());
     MOCK_CONST_METHOD0(isConnected, bool());
     MOCK_CONST_METHOD0(getHeight, unsigned short());
-    MOCK_CONST_METHOD1(attachHeightSpeedCallback, void(std::optional<std::function<void(HeightSpeedData)>>));
+    MOCK_CONST_METHOD1(attachHeightSpeedCallback, void(const std::function<void(const HeightSpeedData&)>&));
+    MOCK_CONST_METHOD0(detachHeightSpeedCallback, void());
     MOCK_CONST_METHOD0(startMoveTorwards, void());
     MOCK_CONST_METHOD1(moveTorwards, void(unsigned short height));
     MOCK_CONST_METHOD0(stopMove, void());
