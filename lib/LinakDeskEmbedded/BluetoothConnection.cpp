@@ -3,17 +3,6 @@
 #include <Arduino.h>
 
 namespace {
-static BLEUUID nameServiceUUID("00001800-0000-1000-8000-00805f9b34fb");
-static BLEUUID nameCharacteristicUUID("00002a00-0000-1000-8000-00805f9b34fb");
-static BLEUUID controlServiceUUID("99fa0001-338a-1024-8a49-009c0215f78a");
-static BLEUUID controlCharacteristicUUID("99fa0002-338a-1024-8a49-009c0215f78a");
-static BLEUUID dpgServiceUUID("99fa0010-338a-1024-8a49-009c0215f78a");
-static BLEUUID dpgCharacteristicUUID("99fa0011-338a-1024-8a49-009c0215f78a");
-static BLEUUID outputServiceUUID("99fa0020-338a-1024-8a49-009c0215f78a");
-static BLEUUID outputCharacteristicUUID("99fa0021-338a-1024-8a49-009c0215f78a");
-static BLEUUID inputServiceUUID("99fa0030-338a-1024-8a49-009c0215f78a");
-static BLEUUID inputCharacteristicUUID("99fa0031-338a-1024-8a49-009c0215f78a");
-
 void adapterCallback(BLERemoteCharacteristic* pBLERemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify) {
     if (LinakDesk::BluetoothConnection::sHeightSpeedCallback && length >= 4) {
         uint16_t height = *(uint16_t*)pData;
@@ -64,9 +53,14 @@ bool BluetoothConnection::connect(const std::string& bluetoothAddress) {
     }
     auto connected = mBleClient->connect(bluetoothAddress, BLE_ADDR_TYPE_RANDOM);
     if (connected) {
-        mInputChar = mBleClient->getService(inputServiceUUID)->getCharacteristic(inputCharacteristicUUID);
-        mOutputChar = mBleClient->getService(outputServiceUUID)->getCharacteristic(outputCharacteristicUUID);
-        mControlChar = mBleClient->getService(controlServiceUUID)->getCharacteristic(controlCharacteristicUUID);
+        mInputChar = mBleClient->getService(BleConstants::InputServiceUUID)
+                         ->getCharacteristic(BleConstants::InputCharacteristicUUID);
+        mOutputChar = mBleClient->getService(BleConstants::OutputServiceUUID)
+                          ->getCharacteristic(BleConstants::OutputCharacteristicUUID);
+        mControlChar = mBleClient->getService(BleConstants::ControlServiceUUID)
+                           ->getCharacteristic(BleConstants::ControlCharacteristicUUID);
+        mDpgChar = mBleClient->getService(BleConstants::DpgServiceUUID)
+                       ->getCharacteristic(BleConstants::DpgCharacteristicUUID);
         setupDesk();
         Serial.println("connected");
     }
@@ -88,48 +82,34 @@ void BluetoothConnection::writeUInt16(BLERemoteCharacteristic* charcteristic, un
     charcteristic->writeValue(data, 2);
 }
 
-void BluetoothConnection::setupDesk() const {
+void BluetoothConnection::setupDesk() {
     queryName();
-    auto dpgChar = mBleClient->getService(dpgServiceUUID)->getCharacteristic(dpgCharacteristicUUID);
-    dpgChar->registerForNotify(printingNotifyCallback);
+    mDpgChar->registerForNotify(printingNotifyCallback);
     // basic dpg read comand has the same first and last byte, the middle one is the actual command value
     // more info: https://github.com/anson-vandoren/linak-desk-spec/blob/master/dpg_commands.md
-    uint8_t data[3] = {0x7f, 0x88, 0x0};
 
-    dpgChar->writeValue(data, 3);
-    Serial.println("Dpg response:");
-    printStringAsHex(dpgChar->readValue());
+    auto deskOffsetCommandOutput = dpgReadCommand(DpgCommand::DeskOffset);
+    if (deskOffsetCommandOutput[2] == 0x01) {
+        mRawOffset = *(unsigned short*)(deskOffsetCommandOutput.c_str() + 3);
+    }
 
-    data[1] = 0x89;
+    loadMemoryPosition(DpgCommand::MemoryPosition1);
+    loadMemoryPosition(DpgCommand::MemoryPosition2);
+    loadMemoryPosition(DpgCommand::MemoryPosition3);
 
-    dpgChar->writeValue(data, 3);
-    Serial.println("Dpg response:");
-    printStringAsHex(dpgChar->readValue());
+    dpgReadCommand(DpgCommand::UserID);
 
-    data[1] = 0x8a;
+    dpgWriteCommand(DpgCommand::UserID, Constants::UserIdCommandData, 16);
 
-    dpgChar->writeValue(data, 3);
-    Serial.println("Dpg response:");
-    printStringAsHex(dpgChar->readValue());
-
-    data[1] = 0x8b;
-
-    dpgChar->writeValue(data, 3);
-    Serial.println("Dpg response:");
-    printStringAsHex(dpgChar->readValue());
-
-    data[1] = 0x8c;
-
-    dpgChar->writeValue(data, 3);
-    Serial.println("Dpg response:");
-    printStringAsHex(dpgChar->readValue());
-    dpgChar->registerForNotify(nullptr);
+    mDpgChar->registerForNotify(nullptr);
 }
 
 void BluetoothConnection::queryName() const {
     const TickType_t delay = 500 / portTICK_PERIOD_MS;
     vTaskDelay(delay); // aparently needed (by the linak controller maybe?)
-    auto name = mBleClient->getService(nameServiceUUID)->getCharacteristic(nameCharacteristicUUID)->readValue();
+    auto name = mBleClient->getService(BleConstants::NameServiceUUID)
+                    ->getCharacteristic(BleConstants::NameCharacteristicUUID)
+                    ->readValue();
     vTaskDelay(delay); // aparently needed (by the linak controller maybe?)
     Serial.println("Name:");
     Serial.println(name.c_str());
@@ -166,4 +146,50 @@ void BluetoothConnection::stopMove() const {
     writeUInt16(mControlChar, 0xFF);
     writeUInt16(mInputChar, 0x8001);
 }
+
+std::string BluetoothConnection::dpgReadCommand(DpgCommand command) {
+    unsigned char dataToSend[3]{0x7f, static_cast<unsigned char>(command), 0x0};
+    mDpgChar->writeValue(dataToSend, 3);
+    return mDpgChar->readValue();
+}
+
+std::string BluetoothConnection::dpgWriteCommand(DpgCommand command, const unsigned char* data, unsigned char length) {
+    std::vector<unsigned char> dataToSend{0x7f, static_cast<unsigned char>(command), 0x80, 0x01};
+    dataToSend.reserve(4 + length);
+    std::copy(data, data + length, std::back_inserter(dataToSend));
+    mDpgChar->writeValue(dataToSend.data(), dataToSend.size());
+    return mDpgChar->readValue();
+}
+
+void BluetoothConnection::loadMemoryPosition(DpgCommand command) {
+    auto temp = dpgReadCommand(command);
+    std::optional<unsigned short> value;
+    if (temp[2] == 0x01) {
+        value = *(unsigned short*)(temp.c_str() + 3);
+    }
+    switch (command) {
+    case DpgCommand::MemoryPosition1:
+        mMemoryPosition1 = value;
+        break;
+    case DpgCommand::MemoryPosition2:
+        mMemoryPosition2 = value;
+        break;
+    case DpgCommand::MemoryPosition3:
+        mMemoryPosition3 = value;
+        break;
+
+    default:
+        Serial.println("loadMemoryPosition called with wrong command!");
+        break;
+    }
+}
+
+void BluetoothConnection::setMemoryPosition(DpgCommand command, unsigned short value){
+    uint8_t data[2];
+    data[0] = value;
+    data[1] = value >> 8;
+    dpgWriteCommand(command, data, 2);
+    loadMemoryPosition(command);
+}
+
 } // namespace LinakDesk

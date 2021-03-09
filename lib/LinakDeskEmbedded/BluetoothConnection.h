@@ -7,6 +7,7 @@
 #include <BLEDevice.h>
 
 #include "ConnectionInterface.h"
+#include "Constants.h"
 
 namespace LinakDesk {
 class BluetoothConnection : public ConnectionInterface {
@@ -28,18 +29,30 @@ class BluetoothConnection : public ConnectionInterface {
 
   private:
     // mimic the calls done by LinakDeskApp after connection
-    void setupDesk() const;
+    void setupDesk();
     // We need to query the name, otherwise the controller won't react
     void queryName() const;
+    
+    std::string dpgReadCommand(DpgCommand command);
+    std::string dpgWriteCommand(DpgCommand command, const unsigned char* data, unsigned char length);
+
+    void loadMemoryPosition(DpgCommand command); 
+    void setMemoryPosition(DpgCommand command, unsigned short value);
 
     void writeUInt16(BLERemoteCharacteristic* charcteristic, unsigned short value) const;
 
     std::unique_ptr<BLEClient> mBleClient;
+    mutable std::map<std::string, BLERemoteService*>* mServicesMap = nullptr;
     bool mIsConnected = false;
+    unsigned short mRawOffset = 0;
+    std::optional<unsigned short> mMemoryPosition1;
+    std::optional<unsigned short> mMemoryPosition2;
+    std::optional<unsigned short> mMemoryPosition3;
 
-    BLERemoteCharacteristic* mOutputChar;
-    BLERemoteCharacteristic* mInputChar;
-    BLERemoteCharacteristic* mControlChar;
+    BLERemoteCharacteristic* mOutputChar = nullptr;
+    BLERemoteCharacteristic* mInputChar = nullptr;
+    BLERemoteCharacteristic* mControlChar = nullptr;
+    BLERemoteCharacteristic* mDpgChar = nullptr;
 };
 
 } // namespace LinakDesk
