@@ -28,16 +28,16 @@ bool DeskController::isConnected() const { return mConnection->isConnected(); }
 
 unsigned short DeskController::getHeight() const { return mConnection->getHeight(); }
 
-bool DeskController::moveToHeight(unsigned short destinationHeight) const {
-    if (!isConnected()) {
+bool DeskController::moveToHeight(unsigned short destinationHeight) {
+    if (!isConnected() || mIsMoving) {
         return false;
     }
-    auto startHeight = mConnection->getHeight();
-    if (startHeight == destinationHeight) {
+    mMoveStartHeight = mConnection->getHeight();
+    if (mMoveStartHeight == destinationHeight) {
         return true;
     }
-    auto goingUp = std::signbit(startHeight - destinationHeight);
-
+    mGoingUp = std::signbit(mMoveStartHeight - destinationHeight);
+    mDestinationHeight = destinationHeight;
     sLastHeight = std::numeric_limits<unsigned short>::max();
     sLastSpeed = std::numeric_limits<short>::max();
 
@@ -45,44 +45,55 @@ bool DeskController::moveToHeight(unsigned short destinationHeight) const {
     mConnection->startMoveTorwards();
 
     mConnection->moveTorwards(destinationHeight);
-    delay(200);
-    if (sLastHeight == std::numeric_limits<unsigned short>::max()) {
-        // For some reason the callback wasn't called
-        endMove();
-        return false;
-    }
-
-    auto previousHeight = sLastHeight;
-
-    while (sLastHeight != destinationHeight) {
-        if (sLastSpeed == 0) {
-            // We've stopped at the wrong height, something's wrong
-            endMove();
-            return false;
-        }
-        if (!std::signbit(sLastSpeed) != goingUp) {
-            // We're moving in the wrong direction, something's wrong
-            endMove();
-            return false;
-        }
-
-        mConnection->moveTorwards(destinationHeight);
-        delay(200);
-        if (previousHeight == sLastHeight) {
-            // We didn't move in the last 200ms, something's wrong
-            endMove();
-            return false;
-        }
-    }
-    // We reached our destination
-    endMove();
+    mLastCommandSendTime = millis();
+    mIsMoving = true;
 
     return true;
 }
 
-void DeskController::endMove() const {
+void DeskController::loop() {
+    if (!mIsMoving) {
+        return;
+    }
+    if (millis() - mLastCommandSendTime > 150) {
+        if (sLastHeight == std::numeric_limits<unsigned short>::max()) {
+            // For some reason the callback wasn't called
+            endMove();
+            return;
+        }
+
+        if (mPreviousHeight == sLastHeight) {
+            // We didn't move since the last time, something's wrong
+            endMove();
+            return;
+        }
+
+        if (sLastHeight != mDestinationHeight) {
+            if (sLastSpeed == 0) {
+                // We've stopped at the wrong height, something's wrong
+                endMove();
+                return;
+            }
+            if (!std::signbit(sLastSpeed) != mGoingUp) {
+                // We're moving in the wrong direction, something's wrong
+                endMove();
+                return;
+            }
+
+            mPreviousHeight = sLastHeight;
+            mConnection->moveTorwards(mDestinationHeight);
+            mLastCommandSendTime = millis();
+            return;
+        }
+        // We reached our destination
+        endMove();
+    }
+}
+
+void DeskController::endMove() {
     mConnection->stopMove();
     mConnection->detachHeightSpeedCallback();
+    mIsMoving = false;
 }
 
 const std::function<void(const HeightSpeedData&)> DeskController::printingCallback = [](const HeightSpeedData& data) {

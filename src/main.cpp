@@ -10,25 +10,14 @@ AsyncWebServer server(80);
 
 auto controller = LinakDesk::DeskControllerFactory::make();
 
-void moveToHeightTask(void* parameter) {
-    controller.moveToHeight(*static_cast<long*>(parameter));
-    vTaskDelete(NULL);
-}
-
 void moveToHeightHttpHandler(AsyncWebServerRequest* request) {
     if (request->hasParam("destination")) {
         auto message = request->getParam("destination")->value();
         auto destination = message.toInt();
         if (controller.isConnected() && destination >= 0 && destination < 7000) {
             request->send(200, "text/plain", "Moving to: " + message);
-            xTaskCreatePinnedToCore(moveToHeightTask,                 // Function that should be called
-                                    "moveToHeight",                   // Name of the task (for debugging)
-                                    4000,                             // Stack size (bytes)
-                                    static_cast<void*>(&destination), // Parameter to pass
-                                    1,                                // Task priority
-                                    NULL,                             // Task handle
-                                    0                                 // Core you want to run the task on (0 or 1)
-            );
+            controller.moveToHeight(destination);
+            return;
         }
     }
     request->send(400, "text/plain", "Wrong input");
@@ -41,6 +30,11 @@ void setup() {
     Serial.print("Connecting to desk: ");
     Serial.println(bt_mac_address);
     if (controller.connect(bt_mac_address)) {
+        // Sanity check to see if the desk connection works
+        auto before = millis();
+        Serial.printf("Current height: %d\n", controller.getHeight());
+        Serial.printf("Getting height and printing it took: %ldms\n", millis() - before);
+
         WiFi.begin(ssid, password);
         Serial.println("Connecting to WiFi");
         while (WiFi.status() != WL_CONNECTED) {
@@ -50,7 +44,9 @@ void setup() {
         Serial.println("\nWiFi connected!");
         Serial.print("Got IP: ");
         Serial.println(WiFi.localIP());
-
+        // respond to GET requests on URL /heap
+        server.on("/heap", HTTP_GET,
+                  [](AsyncWebServerRequest* request) { request->send(200, "text/plain", String(ESP.getFreeHeap())); });
         server.on("/moveToHeight", HTTP_GET, moveToHeightHttpHandler);
         server.on("/getHeight", HTTP_GET, [](AsyncWebServerRequest* request) {
             request->send(200, "text/plain", String(controller.getHeight()).c_str());
@@ -66,4 +62,7 @@ void setup() {
     }
 }
 
-void loop() { delay(10); }
+void loop() {
+    delay(10);
+    controller.loop();
+}

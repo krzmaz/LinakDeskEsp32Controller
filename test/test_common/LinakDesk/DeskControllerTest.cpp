@@ -71,7 +71,7 @@ TEST_F(DeskControllerTest, movingToHeightReturnsTrueIfWereAtPositionAlready) {
     EXPECT_TRUE(mDeskController.moveToHeight(destinationHeight));
 }
 
-TEST_F(DeskControllerTest, movingToHeightReturnsFalseIfPositionDoesntChange) {
+TEST_F(DeskControllerTest, movingToHeightStopsMoveIfPositionDoesntChange) {
     unsigned short destinationHeight = 1234u;
     unsigned short startHeight = 1234u - 50u;
 
@@ -82,11 +82,20 @@ TEST_F(DeskControllerTest, movingToHeightReturnsFalseIfPositionDoesntChange) {
             [&](const std::function<void(const HeightSpeedData&)>& callback) { mHeightSpeedCallbackPtr = &callback; });
     EXPECT_CALL(mConnectionMock, startMoveTorwards());
     EXPECT_CALL(mConnectionMock, moveTorwards(destinationHeight));
-    EXPECT_CALL(*mArduinoMock, delay(200));
+    EXPECT_CALL(*mArduinoMock, millis()).WillOnce([&]() {
+        mArduinoMock->addMillisRaw(200);
+        return 300ul;
+    });
+
+    mDeskController.moveToHeight(destinationHeight);
+
+    EXPECT_CALL(*mArduinoMock, millis()).WillOnce([&]() {
+        mArduinoMock->addMillisRaw(200);
+        return 500ul;
+    });
     EXPECT_CALL(mConnectionMock, stopMove());
     EXPECT_CALL(mConnectionMock, detachHeightSpeedCallback());
-
-    EXPECT_FALSE(mDeskController.moveToHeight(destinationHeight));
+    mDeskController.loop();
 }
 
 TEST_F(DeskControllerTest, basicMoveToHeightScenarioGoingUp) {
@@ -106,11 +115,19 @@ TEST_F(DeskControllerTest, basicMoveToHeightScenarioGoingUp) {
     });
     setPrintingCallbackCallsExpecations(data1);
     setPrintingCallbackCallsExpecations(data2);
-    EXPECT_CALL(*mArduinoMock, delay(200));
+    EXPECT_CALL(*mArduinoMock, millis()).WillOnce([&]() {
+        mArduinoMock->addMillisRaw(200);
+        return 300ul;
+    });
+
+    mDeskController.moveToHeight(destinationHeight);
+    EXPECT_CALL(*mArduinoMock, millis()).WillOnce([&]() {
+        mArduinoMock->addMillisRaw(200);
+        return 500ul;
+    });
     EXPECT_CALL(mConnectionMock, stopMove());
     EXPECT_CALL(mConnectionMock, detachHeightSpeedCallback());
-
-    EXPECT_TRUE(mDeskController.moveToHeight(destinationHeight));
+    mDeskController.loop();
 }
 
 TEST_F(DeskControllerTest, basicMoveToHeightScenarioGoingDown) {
@@ -130,11 +147,19 @@ TEST_F(DeskControllerTest, basicMoveToHeightScenarioGoingDown) {
     });
     setPrintingCallbackCallsExpecations(data1);
     setPrintingCallbackCallsExpecations(data2);
-    EXPECT_CALL(*mArduinoMock, delay(200));
+    EXPECT_CALL(*mArduinoMock, millis()).WillOnce([&]() {
+        mArduinoMock->addMillisRaw(200);
+        return 300ul;
+    });
+
+    mDeskController.moveToHeight(destinationHeight);
+    EXPECT_CALL(*mArduinoMock, millis()).WillOnce([&]() {
+        mArduinoMock->addMillisRaw(200);
+        return 500ul;
+    });
     EXPECT_CALL(mConnectionMock, stopMove());
     EXPECT_CALL(mConnectionMock, detachHeightSpeedCallback());
-
-    EXPECT_TRUE(mDeskController.moveToHeight(destinationHeight));
+    mDeskController.loop();
 }
 
 TEST_F(DeskControllerTest, collisionScenarioGoingDown) {
@@ -158,7 +183,17 @@ TEST_F(DeskControllerTest, collisionScenarioGoingDown) {
     });
     setPrintingCallbackCallsExpecations(data1);
     setPrintingCallbackCallsExpecations(data2);
-    EXPECT_CALL(*mArduinoMock, delay(200));
+    EXPECT_CALL(*mArduinoMock, millis()).WillOnce([&]() {
+        mArduinoMock->addMillisRaw(200);
+        return 300ul;
+    });
+
+    mDeskController.moveToHeight(destinationHeight);
+    EXPECT_CALL(*mArduinoMock, millis()).WillOnce([&]() {
+        mArduinoMock->addMillisRaw(200);
+        return 500ul;
+    });
+
     EXPECT_CALL(mConnectionMock, moveTorwards(destinationHeight)).WillOnce([&](unsigned short) {
         mHeightSpeedCallbackPtr->operator()(data3);
         mHeightSpeedCallbackPtr->operator()(data4);
@@ -167,11 +202,19 @@ TEST_F(DeskControllerTest, collisionScenarioGoingDown) {
     setPrintingCallbackCallsExpecations(data3);
     setPrintingCallbackCallsExpecations(data4);
     setPrintingCallbackCallsExpecations(data5);
-    EXPECT_CALL(*mArduinoMock, delay(200));
+    EXPECT_CALL(*mArduinoMock, millis()).WillOnce([&]() {
+        mArduinoMock->addMillisRaw(200);
+        return 700ul;
+    });
+
+    mDeskController.loop();
+    EXPECT_CALL(*mArduinoMock, millis()).WillOnce([&]() {
+        mArduinoMock->addMillisRaw(200);
+        return 900ul;
+    });
     EXPECT_CALL(mConnectionMock, stopMove());
     EXPECT_CALL(mConnectionMock, detachHeightSpeedCallback());
-
-    EXPECT_FALSE(mDeskController.moveToHeight(destinationHeight));
+    mDeskController.loop();
 }
 
 TEST_F(DeskControllerTest, gettingHeightWorks) {
