@@ -17,12 +17,15 @@ class BluetoothConnection : public ConnectionInterface {
     bool connect(const std::string& bluetoothAddress) override;
     void disconnect() const override;
     bool isConnected() const override;
-    unsigned short getHeight() const override;
+    unsigned short getHeightRaw() const override;
+    unsigned short getHeightMm() const override;
     void attachHeightSpeedCallback(const std::function<void(const HeightSpeedData&)>& callback) const override;
     void detachHeightSpeedCallback() const override;
     void startMoveTorwards() const override;
     void moveTorwards(unsigned short height) const override;
     void stopMove() const override;
+    const std::optional<unsigned short>& getMemoryPosition(unsigned char positionNumber) const override;
+    const std::optional<unsigned short>& getDeskOffset() const override;
 
     // BLE library allows only one callback to be attached, so we might as well make it static
     static std::optional<std::function<void(HeightSpeedData)>> sHeightSpeedCallback;
@@ -42,9 +45,8 @@ class BluetoothConnection : public ConnectionInterface {
     void writeUInt16(BLERemoteCharacteristic* charcteristic, unsigned short value) const;
 
     std::unique_ptr<BLEClient> mBleClient;
-    mutable std::map<std::string, BLERemoteService*>* mServicesMap = nullptr;
     bool mIsConnected = false;
-    unsigned short mRawOffset = 0;
+    std::optional<unsigned short> mRawOffset;
     std::optional<unsigned short> mMemoryPosition1;
     std::optional<unsigned short> mMemoryPosition2;
     std::optional<unsigned short> mMemoryPosition3;

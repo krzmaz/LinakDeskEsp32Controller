@@ -20,8 +20,12 @@ class DeskController {
     void disconnect();
     bool isConnected() const;
 
-    bool moveToHeight(unsigned short destinationHeight);
-    unsigned short getHeight() const;
+    const std::optional<unsigned short>& getMemoryPosition(unsigned char positionNumber) const;
+
+    bool moveToHeightRaw(unsigned short destinationHeight);
+    bool moveToHeightMm(unsigned short destinationHeight);
+    unsigned short getHeightRaw() const;
+    unsigned short getHeightMm() const;
 
     void loop();
 

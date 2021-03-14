@@ -26,13 +26,26 @@ void DeskController::disconnect() { mConnection->disconnect(); }
 
 bool DeskController::isConnected() const { return mConnection->isConnected(); }
 
-unsigned short DeskController::getHeight() const { return mConnection->getHeight(); }
+unsigned short DeskController::getHeightRaw() const { return mConnection->getHeightRaw(); }
+unsigned short DeskController::getHeightMm() const { return mConnection->getHeightMm(); }
 
-bool DeskController::moveToHeight(unsigned short destinationHeight) {
+const std::optional<unsigned short>& DeskController::getMemoryPosition(unsigned char positionNumber) const{
+    return mConnection->getMemoryPosition(positionNumber);
+}
+
+bool DeskController::moveToHeightMm(unsigned short destinationHeight) {
+    auto offset = mConnection->getDeskOffset();
+    if(offset){
+        return moveToHeightRaw(destinationHeight*10 - offset.value());
+    }
+    return false;
+}
+
+bool DeskController::moveToHeightRaw(unsigned short destinationHeight) {
     if (!isConnected() || mIsMoving) {
         return false;
     }
-    mMoveStartHeight = mConnection->getHeight();
+    mMoveStartHeight = mConnection->getHeightRaw();
     if (mMoveStartHeight == destinationHeight) {
         return true;
     }

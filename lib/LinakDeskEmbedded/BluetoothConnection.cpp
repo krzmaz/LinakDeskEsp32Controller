@@ -115,7 +115,11 @@ void BluetoothConnection::queryName() const {
     Serial.println(name.c_str());
 }
 
-unsigned short BluetoothConnection::getHeight() const { return mOutputChar->readUInt16(); }
+unsigned short BluetoothConnection::getHeightRaw() const { return mOutputChar->readUInt16(); }
+
+unsigned short BluetoothConnection::getHeightMm() const {
+    return (mOutputChar->readUInt16() + mRawOffset.value_or(0)) / 10;
+}
 
 void BluetoothConnection::startMoveTorwards() const {
     writeUInt16(mControlChar, 0xFE);
@@ -184,12 +188,28 @@ void BluetoothConnection::loadMemoryPosition(DpgCommand command) {
     }
 }
 
-void BluetoothConnection::setMemoryPosition(DpgCommand command, unsigned short value){
+void BluetoothConnection::setMemoryPosition(DpgCommand command, unsigned short value) {
     uint8_t data[2];
     data[0] = value;
     data[1] = value >> 8;
     dpgWriteCommand(command, data, 2);
     loadMemoryPosition(command);
 }
+
+const std::optional<unsigned short>& BluetoothConnection::getMemoryPosition(unsigned char positionNumber) const {
+    switch (positionNumber) {
+    case 1:
+        return mMemoryPosition1;
+    case 2:
+        return mMemoryPosition2;
+    case 3:
+        return mMemoryPosition3;
+
+    default:
+        throw std::runtime_error("Bad Memory Position requested!");
+    }
+}
+
+const std::optional<unsigned short>& BluetoothConnection::getDeskOffset() const { return mRawOffset; }
 
 } // namespace LinakDesk

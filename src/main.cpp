@@ -39,7 +39,19 @@ void moveToHeightHttpHandler(AsyncWebServerRequest* request) {
         auto destination = message.toInt();
         if (controller.isConnected() && destination >= 0 && destination < 7000) {
             request->send(200, "text/plain", "Moving to: " + message);
-            controller.moveToHeight(destination);
+            controller.moveToHeightRaw(destination);
+            return;
+        }
+    }
+    request->send(400, "text/plain", "Wrong input");
+}
+void moveToHeightMmHttpHandler(AsyncWebServerRequest* request) {
+    if (request->hasParam("destination")) {
+        auto message = request->getParam("destination")->value();
+        auto destination = message.toInt();
+        if (controller.isConnected() && destination >= 0 && destination < 2000) {
+            request->send(200, "text/plain", "Moving to: " + message);
+            controller.moveToHeightMm(destination);
             return;
         }
     }
@@ -174,8 +186,12 @@ void setupWebServer() {
     server.on("/heap", HTTP_GET,
               [](AsyncWebServerRequest* request) { request->send(200, "text/plain", String(ESP.getFreeHeap())); });
     server.on("/moveToHeight", HTTP_GET, moveToHeightHttpHandler);
+    server.on("/moveToHeightMm", HTTP_GET, moveToHeightMmHttpHandler);
     server.on("/getHeight", HTTP_GET, [](AsyncWebServerRequest* request) {
-        request->send(200, "text/plain", String(controller.getHeight()).c_str());
+        request->send(200, "text/plain", String(controller.getHeightRaw()).c_str());
+    });
+    server.on("/getHeightMm", HTTP_GET, [](AsyncWebServerRequest* request) {
+        request->send(200, "text/plain", String(controller.getHeightMm()).c_str());
     });
     server.onNotFound(notFound);
     auto strin = std::string(deskName);
@@ -202,7 +218,7 @@ void setup() {
 
     if (controller.connect(deskBtAddress)) {
         auto before = millis();
-        Serial.printf("Current height: %d\n", controller.getHeight());
+        Serial.printf("Current height: %d mm\n", controller.getHeightMm());
         Serial.printf("Getting height and printing it took: %ldms\n", millis() - before);
     }
 
