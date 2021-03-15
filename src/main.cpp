@@ -58,6 +58,19 @@ void moveToHeightMmHttpHandler(AsyncWebServerRequest* request) {
     request->send(400, "text/plain", "Wrong input");
 }
 
+void saveCurrentHeightAsFavHttpHandler(AsyncWebServerRequest* request) {
+    if (request->hasParam("position")) {
+        auto message = request->getParam("position")->value();
+        auto position = message.toInt();
+        if (controller.isConnected() && position >= 0 && position < 4) {
+            request->send(200, "text/plain", "Saving current height to position number: " + message);
+            controller.setMemoryPositionFromCurrentHeight(position);
+            return;
+        }
+    }
+    request->send(400, "text/plain", "Wrong input");
+}
+
 void notFound(AsyncWebServerRequest* request) { request->send(404, "text/plain", "Not found"); }
 
 bool writeConfigFile() {
@@ -187,6 +200,7 @@ void setupWebServer() {
               [](AsyncWebServerRequest* request) { request->send(200, "text/plain", String(ESP.getFreeHeap())); });
     server.on("/moveToHeight", HTTP_GET, moveToHeightHttpHandler);
     server.on("/moveToHeightMm", HTTP_GET, moveToHeightMmHttpHandler);
+    server.on("/saveCurrentPosAsFav", HTTP_GET, saveCurrentHeightAsFavHttpHandler);
     server.on("/getHeight", HTTP_GET, [](AsyncWebServerRequest* request) {
         request->send(200, "text/plain", String(controller.getHeightRaw()).c_str());
     });
@@ -205,7 +219,8 @@ void setupWebServer() {
 void setup() {
     WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // disable brownout detector
     Serial.begin(115200);
-    while (!Serial) {};
+    while (!Serial) {
+    };
     delay(200);
 
     pinMode(PIN_LED, OUTPUT);

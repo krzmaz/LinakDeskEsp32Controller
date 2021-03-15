@@ -21,6 +21,7 @@ class ConnectionInterface {
     virtual void moveTorwards(unsigned short height) const = 0;
     virtual void stopMove() const = 0;
     virtual const std::optional<unsigned short>& getMemoryPosition(unsigned char positionNumber) const = 0;
+    virtual bool setMemoryPosition(unsigned char positionNumber, unsigned short value);
     virtual const std::optional<unsigned short>& getDeskOffset() const = 0;
 };
 } // namespace LinakDesk

@@ -29,14 +29,21 @@ bool DeskController::isConnected() const { return mConnection->isConnected(); }
 unsigned short DeskController::getHeightRaw() const { return mConnection->getHeightRaw(); }
 unsigned short DeskController::getHeightMm() const { return mConnection->getHeightMm(); }
 
-const std::optional<unsigned short>& DeskController::getMemoryPosition(unsigned char positionNumber) const{
+const std::optional<unsigned short>& DeskController::getMemoryPosition(unsigned char positionNumber) const {
     return mConnection->getMemoryPosition(positionNumber);
+}
+
+bool DeskController::setMemoryPositionFromCurrentHeight(unsigned char positionNumber) {
+    if (positionNumber > 0 && positionNumber < 4) {
+        return mConnection->setMemoryPosition(positionNumber, getHeightRaw());
+    }
+    return false;
 }
 
 bool DeskController::moveToHeightMm(unsigned short destinationHeight) {
     auto offset = mConnection->getDeskOffset();
-    if(offset){
-        return moveToHeightRaw(destinationHeight*10 - offset.value());
+    if (offset) {
+        return moveToHeightRaw(destinationHeight * 10 - offset.value());
     }
     return false;
 }

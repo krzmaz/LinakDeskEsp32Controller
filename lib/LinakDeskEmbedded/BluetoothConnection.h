@@ -25,6 +25,7 @@ class BluetoothConnection : public ConnectionInterface {
     void moveTorwards(unsigned short height) const override;
     void stopMove() const override;
     const std::optional<unsigned short>& getMemoryPosition(unsigned char positionNumber) const override;
+    bool setMemoryPosition(unsigned char positionNumber, unsigned short value) override;
     const std::optional<unsigned short>& getDeskOffset() const override;
 
     // BLE library allows only one callback to be attached, so we might as well make it static
@@ -35,11 +36,11 @@ class BluetoothConnection : public ConnectionInterface {
     void setupDesk();
     // We need to query the name, otherwise the controller won't react
     void queryName() const;
-    
+
     std::string dpgReadCommand(DpgCommand command);
     std::string dpgWriteCommand(DpgCommand command, const unsigned char* data, unsigned char length);
 
-    void loadMemoryPosition(DpgCommand command); 
+    void loadMemoryPosition(DpgCommand command);
     void setMemoryPosition(DpgCommand command, unsigned short value);
 
     void writeUInt16(BLERemoteCharacteristic* charcteristic, unsigned short value) const;

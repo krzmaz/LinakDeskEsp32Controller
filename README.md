@@ -21,11 +21,25 @@ standing-desk.local/getHeight
 
 ```
 standing-desk.local/moveToHeight?destination=700
+```  
+You can also use values in milimeters using:
 ```
+standing-desk.local/getHeightMm
+```
+
+```
+standing-desk.local/moveToHeightMm?destination=1000
+```
+Aditionally you can save current height as one of three (1-3) favorite positions to make the desk stop there when moving manually:
+```
+standing-desk.local/saveCurrentPosAsFav?position=3
+``` 
 
 mDNS name will be set from the desk name set in WiFiManager, with the spaces changed to `-`.
 
 You can use the IP address of the device if you're having problems with mDNS
+
+To change the settings reboot the ESP twice within 10 seconds and connect to the created WiFi.
 
 
 # References

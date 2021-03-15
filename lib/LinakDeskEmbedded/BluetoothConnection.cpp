@@ -210,6 +210,26 @@ const std::optional<unsigned short>& BluetoothConnection::getMemoryPosition(unsi
     }
 }
 
+bool BluetoothConnection::setMemoryPosition(unsigned char positionNumber, unsigned short value) {
+    switch (positionNumber) {
+    case 1:
+        setMemoryPosition(DpgCommand::MemoryPosition1, value);
+        loadMemoryPosition(DpgCommand::MemoryPosition1);
+        return mMemoryPosition1.has_value() && mMemoryPosition1.value() == value;
+    case 2:
+        setMemoryPosition(DpgCommand::MemoryPosition2, value);
+        loadMemoryPosition(DpgCommand::MemoryPosition2);
+        return mMemoryPosition2.has_value() && mMemoryPosition2.value() == value;
+    case 3:
+        setMemoryPosition(DpgCommand::MemoryPosition3, value);
+        loadMemoryPosition(DpgCommand::MemoryPosition3);
+        return mMemoryPosition3.has_value() && mMemoryPosition3.value() == value;
+
+    default:
+        throw std::runtime_error("Bad Memory Position requested!");
+    }
+}
+
 const std::optional<unsigned short>& BluetoothConnection::getDeskOffset() const { return mRawOffset; }
 
 } // namespace LinakDesk
