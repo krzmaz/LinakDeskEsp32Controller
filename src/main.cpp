@@ -17,11 +17,14 @@ FS* filesystem = &LITTLEFS;
 #include <DeskControllerFactory.h>
 #include <ESP_DoubleResetDetector.h> //https://github.com/khoih-prog/ESP_DoubleResetDetector
 #include <ESPmDNS.h>
+#include "html.h"
 
 #define DESK_NAME_MAX_LEN 32
 #define DESK_BT_ADDRESS_LEN 18
 #define DeskName_Label "DeskName"
 #define DeskBtAddress_Label "DeskBtAddress"
+#define UserReset_Label "UserReset"
+
 char deskName[DESK_NAME_MAX_LEN] = "Standing desk";
 char deskBtAddress[DESK_BT_ADDRESS_LEN] = "AA:BB:CC:DD:EE:FF";
 
@@ -31,7 +34,7 @@ DoubleResetDetector* drd;
 const int PIN_LED = 2;
 bool needsConfig = false;
 AsyncWebServer server(80);
-auto controller = LinakDesk::DeskControllerFactory::make();
+LinakDesk::DeskController controller = LinakDesk::DeskControllerFactory::make();
 
 void moveToHeightHttpHandler(AsyncWebServerRequest* request) {
     if (request->hasParam("destination")) {
@@ -45,6 +48,7 @@ void moveToHeightHttpHandler(AsyncWebServerRequest* request) {
     }
     request->send(400, "text/plain", "Wrong input");
 }
+
 void moveToHeightMmHttpHandler(AsyncWebServerRequest* request) {
     if (request->hasParam("destination")) {
         auto message = request->getParam("destination")->value();
@@ -73,7 +77,7 @@ void saveCurrentHeightAsFavHttpHandler(AsyncWebServerRequest* request) {
 
 void notFound(AsyncWebServerRequest* request) { request->send(404, "text/plain", "Not found"); }
 
-bool writeConfigFile() {
+bool writeConfigFile(bool userReset = false) {
     Serial.println("Saving config file");
 
     DynamicJsonDocument json(1024);
@@ -81,6 +85,7 @@ bool writeConfigFile() {
     // JSONify local configuration parameters
     json[DeskName_Label] = deskName;
     json[DeskBtAddress_Label] = deskBtAddress;
+    json[UserReset_Label] = userReset;
 
     // Open file for writing
     File f = FileFS.open(CONFIG_FILE, "w");
@@ -136,6 +141,11 @@ bool readConfigFile() {
         if (json.containsKey(DeskBtAddress_Label)) {
             strcpy(deskBtAddress, json[DeskBtAddress_Label]);
         }
+        if (json.containsKey(UserReset_Label)) {
+            if (json[UserReset_Label]){
+                needsConfig = true;
+            }
+        }
     }
     Serial.println("\nConfig file was successfully parsed");
     return true;
@@ -161,7 +171,7 @@ void wifiManagerSetup() {
         needsConfig = true;
     }
     // Resources for ConfigPortal that won't be used for normal operation
-    char customhtml[] PROGMEM = "pattern=\"([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\"";
+    const char customhtml[] PROGMEM = "pattern=\"([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}\"";
     ESPAsync_WMParameter p_deskName(DeskName_Label, "Desk Name", deskName, DESK_NAME_MAX_LEN);
     ESPAsync_WMParameter p_deskBtAddress(DeskBtAddress_Label, "Desk BT address", deskBtAddress, DESK_BT_ADDRESS_LEN,
                                          customhtml);
@@ -196,6 +206,13 @@ void wifiManagerSetup() {
 
 void setupWebServer() {
     // respond to GET requests on URL /heap
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+        request->send_P(200, "text/html", html::index_html, html::processor);
+    });
+    server.on("/cn", HTTP_GET, [](AsyncWebServerRequest* request) {
+        writeConfigFile(true);
+        ESP.restart();
+    });
     server.on("/heap", HTTP_GET,
               [](AsyncWebServerRequest* request) { request->send(200, "text/plain", String(ESP.getFreeHeap())); });
     server.on("/moveToHeight", HTTP_GET, moveToHeightHttpHandler);

@@ -21,6 +21,7 @@ class DeskController {
     bool isConnected() const;
 
     const std::optional<unsigned short>& getMemoryPosition(unsigned char positionNumber) const;
+    std::optional<unsigned short> getMemoryPositionMm(unsigned char positionNumber) const;
     bool setMemoryPositionFromCurrentHeight(unsigned char positionNumber);
     bool moveToHeightRaw(unsigned short destinationHeight);
     bool moveToHeightMm(unsigned short destinationHeight);

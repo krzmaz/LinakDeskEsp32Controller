@@ -33,6 +33,15 @@ const std::optional<unsigned short>& DeskController::getMemoryPosition(unsigned 
     return mConnection->getMemoryPosition(positionNumber);
 }
 
+std::optional<unsigned short> DeskController::getMemoryPositionMm(unsigned char positionNumber) const {
+    auto pos = mConnection->getMemoryPosition(positionNumber);
+    if (pos){
+        *pos += mConnection->getDeskOffset().value_or(0);
+        return std::move(pos);
+    }
+    return std::move(pos);
+}
+
 bool DeskController::setMemoryPositionFromCurrentHeight(unsigned char positionNumber) {
     if (positionNumber > 0 && positionNumber < 4) {
         return mConnection->setMemoryPosition(positionNumber, getHeightRaw());
@@ -75,7 +84,7 @@ void DeskController::loop() {
     if (!mIsMoving) {
         return;
     }
-    if (millis() - mLastCommandSendTime > 150) {
+    if (millis() - mLastCommandSendTime > 200) {
         if (sLastHeight == std::numeric_limits<unsigned short>::max()) {
             // For some reason the callback wasn't called
             endMove();

@@ -41,7 +41,11 @@ You can use the IP address of the device if you're having problems with mDNS
 
 To change the settings reboot the ESP twice within 10 seconds and connect to the created WiFi.
 
+# Web UI
 
+At the root URL there is an Web UI for moving the desk and setting the favorite positions.
+
+![Web UI](./webUI.png "Web UI")
 # References
 * https://github.com/zewelor/linak_bt_desk/
 * https://github.com/anetczuk/linak_bt_desk/
