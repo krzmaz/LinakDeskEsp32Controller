@@ -4,7 +4,7 @@
 #include <optional>
 #include <string>
 
-#include <BLEDevice.h>
+#include <NimBLEDevice.h>
 
 #include "ConnectionInterface.h"
 #include "Constants.h"
@@ -45,7 +45,7 @@ class BluetoothConnection : public ConnectionInterface {
 
     void writeUInt16(BLERemoteCharacteristic* charcteristic, unsigned short value) const;
 
-    std::unique_ptr<BLEClient> mBleClient;
+    std::unique_ptr<BLEClient, void (*)(BLEClient*)> mBleClient;
     bool mIsConnected = false;
     std::optional<unsigned short> mRawOffset;
     std::optional<unsigned short> mMemoryPosition1;

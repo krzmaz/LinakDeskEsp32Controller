@@ -26,8 +26,18 @@ void DeskController::disconnect() { mConnection->disconnect(); }
 
 bool DeskController::isConnected() const { return mConnection->isConnected(); }
 
-unsigned short DeskController::getHeightRaw() const { return mConnection->getHeightRaw(); }
-unsigned short DeskController::getHeightMm() const { return mConnection->getHeightMm(); }
+unsigned short DeskController::getHeightRaw() const {
+    if (mIsMoving) {
+        return sLastHeight;
+    }
+    return mConnection->getHeightRaw();
+}
+unsigned short DeskController::getHeightMm() const {
+    if (mIsMoving) {
+        return (sLastHeight + mConnection->getDeskOffset().value_or(0)) / 10;
+    }
+    return mConnection->getHeightMm();
+}
 
 const std::optional<unsigned short>& DeskController::getMemoryPosition(unsigned char positionNumber) const {
     return mConnection->getMemoryPosition(positionNumber);
@@ -35,7 +45,7 @@ const std::optional<unsigned short>& DeskController::getMemoryPosition(unsigned 
 
 std::optional<unsigned short> DeskController::getMemoryPositionMm(unsigned char positionNumber) const {
     auto pos = mConnection->getMemoryPosition(positionNumber);
-    if (pos){
+    if (pos) {
         *pos += mConnection->getDeskOffset().value_or(0);
         return std::move(pos);
     }
@@ -61,26 +71,34 @@ bool DeskController::moveToHeightRaw(unsigned short destinationHeight) {
     if (!isConnected() || mIsMoving) {
         return false;
     }
-    mMoveStartHeight = mConnection->getHeightRaw();
-    if (mMoveStartHeight == destinationHeight) {
-        return true;
-    }
-    mGoingUp = std::signbit(mMoveStartHeight - destinationHeight);
     mDestinationHeight = destinationHeight;
+    mMoveStartPending = true;
+    return true;
+}
+
+void DeskController::startMoveToHeight() {
+    mMoveStartPending = false;
+    mMoveStartHeight = mConnection->getHeightRaw();
+    if (mMoveStartHeight == mDestinationHeight) {
+        return;
+    }
+    mGoingUp = std::signbit(mMoveStartHeight - mDestinationHeight);
     sLastHeight = std::numeric_limits<unsigned short>::max();
     sLastSpeed = std::numeric_limits<short>::max();
 
     mConnection->attachHeightSpeedCallback(printingCallback);
     mConnection->startMoveTorwards();
 
-    mConnection->moveTorwards(destinationHeight);
+    mConnection->moveTorwards(mDestinationHeight);
     mLastCommandSendTime = millis();
     mIsMoving = true;
-
-    return true;
 }
 
 void DeskController::loop() {
+    if (mMoveStartPending) {
+        startMoveToHeight();
+        return;
+    }
     if (!mIsMoving) {
         return;
     }

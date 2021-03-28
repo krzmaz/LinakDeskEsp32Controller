@@ -38,7 +38,8 @@ namespace LinakDesk {
 
 std::optional<std::function<void(HeightSpeedData)>> BluetoothConnection::sHeightSpeedCallback = {};
 
-BluetoothConnection::BluetoothConnection() : mBleClient{BLEDevice::createClient()} {}
+BluetoothConnection::BluetoothConnection()
+    : mBleClient(BLEDevice::createClient(), [](BLEClient* client) { BLEDevice::deleteClient(client); }) {}
 
 BluetoothConnection::~BluetoothConnection() {
     disconnect();
@@ -51,7 +52,7 @@ bool BluetoothConnection::connect(const std::string& bluetoothAddress) {
     if (!BLEDevice::getInitialized()) {
         BLEDevice::init("BLE32");
     }
-    auto connected = mBleClient->connect(bluetoothAddress, BLE_ADDR_TYPE_RANDOM);
+    auto connected = mBleClient->connect(NimBLEAddress(bluetoothAddress, BLE_ADDR_RANDOM));
     if (connected) {
         mInputChar = mBleClient->getService(BleConstants::InputServiceUUID)
                          ->getCharacteristic(BleConstants::InputCharacteristicUUID);
@@ -79,12 +80,12 @@ void BluetoothConnection::writeUInt16(BLERemoteCharacteristic* charcteristic, un
     uint8_t data[2];
     data[0] = value;
     data[1] = value >> 8;
-    charcteristic->writeValue(data, 2);
+    charcteristic->writeValue(data, 2, true);
 }
 
 void BluetoothConnection::setupDesk() {
     queryName();
-    mDpgChar->registerForNotify(printingNotifyCallback);
+    mDpgChar->subscribe(true, printingNotifyCallback);
     // basic dpg read comand has the same first and last byte, the middle one is the actual command value
     // more info: https://github.com/anson-vandoren/linak-desk-spec/blob/master/dpg_commands.md
 
@@ -101,7 +102,7 @@ void BluetoothConnection::setupDesk() {
 
     dpgWriteCommand(DpgCommand::UserID, Constants::UserIdCommandData, 16);
 
-    mDpgChar->registerForNotify(nullptr);
+    mDpgChar->unsubscribe();
 }
 
 void BluetoothConnection::queryName() const {
@@ -115,10 +116,10 @@ void BluetoothConnection::queryName() const {
     Serial.println(name.c_str());
 }
 
-unsigned short BluetoothConnection::getHeightRaw() const { return mOutputChar->readUInt16(); }
+unsigned short BluetoothConnection::getHeightRaw() const { return mOutputChar->readValue<uint16_t>(); }
 
 unsigned short BluetoothConnection::getHeightMm() const {
-    return (mOutputChar->readUInt16() + mRawOffset.value_or(0)) / 10;
+    return (mOutputChar->readValue<uint16_t>() + mRawOffset.value_or(0)) / 10;
 }
 
 void BluetoothConnection::startMoveTorwards() const {
@@ -138,12 +139,12 @@ void BluetoothConnection::moveTorwards(unsigned short height) const {
 
 void BluetoothConnection::attachHeightSpeedCallback(const std::function<void(const HeightSpeedData&)>& callback) const {
     sHeightSpeedCallback = callback;
-    mOutputChar->registerForNotify(adapterCallback);
+    mOutputChar->subscribe(true, adapterCallback, true);
 }
 
 void BluetoothConnection::detachHeightSpeedCallback() const {
     sHeightSpeedCallback = {};
-    mOutputChar->registerForNotify(nullptr);
+    mOutputChar->unsubscribe(true);
 }
 
 void BluetoothConnection::stopMove() const {
@@ -153,7 +154,7 @@ void BluetoothConnection::stopMove() const {
 
 std::string BluetoothConnection::dpgReadCommand(DpgCommand command) {
     unsigned char dataToSend[3]{0x7f, static_cast<unsigned char>(command), 0x0};
-    mDpgChar->writeValue(dataToSend, 3);
+    mDpgChar->writeValue(dataToSend, 3, true);
     return mDpgChar->readValue();
 }
 
@@ -161,7 +162,7 @@ std::string BluetoothConnection::dpgWriteCommand(DpgCommand command, const unsig
     std::vector<unsigned char> dataToSend{0x7f, static_cast<unsigned char>(command), 0x80, 0x01};
     dataToSend.reserve(4 + length);
     std::copy(data, data + length, std::back_inserter(dataToSend));
-    mDpgChar->writeValue(dataToSend.data(), dataToSend.size());
+    mDpgChar->writeValue(dataToSend.data(), dataToSend.size(), true);
     return mDpgChar->readValue();
 }
 

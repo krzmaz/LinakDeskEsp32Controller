@@ -36,7 +36,9 @@ class DeskController {
 
   private:
     void endMove();
+    void startMoveToHeight();
     std::unique_ptr<ConnectionInterface> mConnection;
+    bool mMoveStartPending = false;
     bool mIsMoving = false;
     bool mGoingUp = false;
     unsigned short mDestinationHeight = 0;

@@ -17,6 +17,7 @@ FS* filesystem = &LITTLEFS;
 #include <DeskControllerFactory.h>
 #include <ESP_DoubleResetDetector.h> //https://github.com/khoih-prog/ESP_DoubleResetDetector
 #include <ESPmDNS.h>
+
 #include "html.h"
 
 #define DESK_NAME_MAX_LEN 32
@@ -35,6 +36,7 @@ const int PIN_LED = 2;
 bool needsConfig = false;
 AsyncWebServer server(80);
 LinakDesk::DeskController controller = LinakDesk::DeskControllerFactory::make();
+// LinakDesk::DeskController controller(nullptr);
 
 void moveToHeightHttpHandler(AsyncWebServerRequest* request) {
     if (request->hasParam("destination")) {
@@ -142,7 +144,7 @@ bool readConfigFile() {
             strcpy(deskBtAddress, json[DeskBtAddress_Label]);
         }
         if (json.containsKey(UserReset_Label)) {
-            if (json[UserReset_Label]){
+            if (json[UserReset_Label]) {
                 needsConfig = true;
             }
         }
@@ -263,6 +265,9 @@ void setup() {
     Serial.println(connRes);
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println(F("Failed to connect"));
+        drd->stop();
+        delay(10000);
+        ESP.restart();
     } else {
         Serial.print(F("Local IP: "));
         Serial.println(WiFi.localIP());

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <BLEUUID.h>
+#include <NimBLEUUID.h>
 
 namespace LinakDesk {
 
@@ -10,16 +10,16 @@ namespace Constants {
 } // namespace Constants
 
 namespace BleConstants {
-    static const BLEUUID NameServiceUUID("00001800-0000-1000-8000-00805f9b34fb");
-    static const BLEUUID NameCharacteristicUUID("00002a00-0000-1000-8000-00805f9b34fb");
-    static const BLEUUID ControlServiceUUID("99fa0001-338a-1024-8a49-009c0215f78a");
-    static const BLEUUID ControlCharacteristicUUID("99fa0002-338a-1024-8a49-009c0215f78a");
-    static const BLEUUID DpgServiceUUID("99fa0010-338a-1024-8a49-009c0215f78a");
-    static const BLEUUID DpgCharacteristicUUID("99fa0011-338a-1024-8a49-009c0215f78a");
-    static const BLEUUID OutputServiceUUID("99fa0020-338a-1024-8a49-009c0215f78a");
-    static const BLEUUID OutputCharacteristicUUID("99fa0021-338a-1024-8a49-009c0215f78a");
-    static const BLEUUID InputServiceUUID("99fa0030-338a-1024-8a49-009c0215f78a");
-    static const BLEUUID InputCharacteristicUUID("99fa0031-338a-1024-8a49-009c0215f78a");
+    static const BLEUUID NameServiceUUID((unsigned short)0x1800);
+    static const BLEUUID NameCharacteristicUUID((unsigned short)0x2a00u);
+    static const BLEUUID ControlServiceUUID(0x99fa0001, 0x338a, 0x1024, 0x8a49009c0215f78a);
+    static const BLEUUID ControlCharacteristicUUID(0x99fa0002, 0x338a, 0x1024, 0x8a49009c0215f78a);
+    static const BLEUUID DpgServiceUUID(0x99fa0010, 0x338a, 0x1024, 0x8a49009c0215f78a);
+    static const BLEUUID DpgCharacteristicUUID(0x99fa0011, 0x338a, 0x1024, 0x8a49009c0215f78a);
+    static const BLEUUID OutputServiceUUID(0x99fa0020, 0x338a, 0x1024, 0x8a49009c0215f78a);
+    static const BLEUUID OutputCharacteristicUUID(0x99fa0021, 0x338a, 0x1024, 0x8a49009c0215f78a);
+    static const BLEUUID InputServiceUUID(0x99fa0030, 0x338a, 0x1024, 0x8a49009c0215f78a);
+    static const BLEUUID InputCharacteristicUUID(0x99fa0031, 0x338a, 0x1024, 0x8a49009c0215f78a);
 } // namespace BleConstants
 
 enum class DpgCommand {
