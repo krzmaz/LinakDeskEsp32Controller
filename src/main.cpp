@@ -19,6 +19,7 @@ FS* filesystem = &LITTLEFS;
 #include <ESPmDNS.h>
 
 #include "html.h"
+#include <fauxmoESP.h>
 
 #define DESK_NAME_MAX_LEN 32
 #define DESK_BT_ADDRESS_LEN 18
@@ -36,7 +37,7 @@ const int PIN_LED = 2;
 bool needsConfig = false;
 AsyncWebServer server(80);
 LinakDesk::DeskController controller = LinakDesk::DeskControllerFactory::make();
-// LinakDesk::DeskController controller(nullptr);
+fauxmoESP fauxmo;
 
 void moveToHeightHttpHandler(AsyncWebServerRequest* request) {
     if (request->hasParam("destination")) {
@@ -226,13 +227,59 @@ void setupWebServer() {
     server.on("/getHeightMm", HTTP_GET, [](AsyncWebServerRequest* request) {
         request->send(200, "text/plain", String(controller.getHeightMm()).c_str());
     });
-    server.onNotFound(notFound);
+        // These two callbacks are required for echo gen1 and gen3 compatibility
+    server.onRequestBody([](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+        if (fauxmo.process(request->client(), request->method() == HTTP_GET, request->url(), String((char *)data))) return;
+        // Handle any other body request here...
+    });
+    server.onNotFound([](AsyncWebServerRequest *request) {
+        String body = (request->hasParam("body", true)) ? request->getParam("body", true)->value() : String();
+        if (fauxmo.process(request->client(), request->method() == HTTP_GET, request->url(), body)) return;
+        return notFound(request);
+    });
     auto strin = std::string(deskName);
     std::replace(strin.begin(), strin.end(), ' ', '-');
     MDNS.begin(strin.c_str());
     MDNS.addService("http", "tcp", 80);
     server.begin();
     Serial.println("HTTP server started");
+}
+
+void setupFauxmo(){
+    // Set fauxmoESP to not create an internal TCP server and redirect requests to the server on the defined port
+    // The TCP port must be 80 for gen3 devices (default is 1901)
+    // This has to be done before the call to enable()
+    fauxmo.createServer(false);
+    fauxmo.setPort(80); // This is required for gen3 devices
+
+    // You have to call enable(true) once you have a WiFi connection
+    // You can enable or disable the library at any moment
+    // Disabling it will prevent the devices from being discovered and switched
+    fauxmo.enable(true);
+
+    // You can use different ways to invoke alexa to modify the devices state:
+    // "Alexa, turn kitchen on" ("kitchen" is the name of the first device below)
+    // "Alexa, turn on kitchen"
+    // "Alexa, set kitchen to fifty" (50 means 50% of brightness)
+
+    // Add virtual devices
+    fauxmo.addDevice(deskName);
+
+    fauxmo.onSetState([](unsigned char device_id, const char * device_name, bool state, unsigned char value) {
+        
+        Serial.printf("[MAIN] Device #%d (%s) state: %s value: %d\n", device_id, device_name, state ? "ON" : "OFF", value);
+
+        if (strcmp(device_name, deskName) == 0)
+        {
+            if (controller.getMemoryPosition(1).has_value() && controller.getMemoryPosition(3).has_value()) {
+
+            unsigned char destinationPosition = state ? 3 : 1;
+            controller.moveToHeightRaw(controller.getMemoryPosition(destinationPosition).value());
+        }
+            /* code */
+        }
+        
+    });
 }
 
 void setup() {
@@ -272,10 +319,12 @@ void setup() {
         Serial.print(F("Local IP: "));
         Serial.println(WiFi.localIP());
         setupWebServer();
+        setupFauxmo();
     }
 }
 void loop() {
     delay(1);
     drd->loop();
     controller.loop();
+    fauxmo.handle();
 }
