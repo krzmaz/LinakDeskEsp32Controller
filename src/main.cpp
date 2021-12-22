@@ -4,18 +4,13 @@
 #define ESP_DRD_USE_LITTLEFS true
 #define ESP_DRD_USE_SPIFFS false
 #define ESP_DRD_USE_EEPROM false
-#include <FS.h>
-#include <LITTLEFS.h>
-FS* filesystem = &LITTLEFS;
-#define FileFS LITTLEFS
-#define FS_Name "LittleFS"
 
-#include <ESPAsync_WiFiManager.h> //https://github.com/khoih-prog/ESPAsync_WiFiManager
 #define DRD_TIMEOUT 10
 #define DRD_ADDRESS 0
 #include <ArduinoJson.h>
 #include <DeskControllerFactory.h>
 #include <ESP_DoubleResetDetector.h> //https://github.com/khoih-prog/ESP_DoubleResetDetector
+#include <ESPAsync_WiFiManager.h> //https://github.com/khoih-prog/ESPAsync_WiFiManager
 #include <ESPmDNS.h>
 
 #include "html.h"
@@ -308,7 +303,7 @@ void setup() {
     int connRes = WiFi.waitForConnectResult();
     float waited = (millis() - startedAt);
     Serial.print(waited / 1000);
-    Serial.print(F(" secs , Connection result is "));
+    Serial.print(F(" secs , WiFi connection result is "));
     Serial.println(connRes);
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println(F("Failed to connect"));

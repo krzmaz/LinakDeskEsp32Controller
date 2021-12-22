@@ -119,7 +119,7 @@ void BluetoothConnection::queryName() const {
 unsigned short BluetoothConnection::getHeightRaw() const { return mOutputChar->readValue<uint16_t>(); }
 
 unsigned short BluetoothConnection::getHeightMm() const {
-    return (mOutputChar->readValue<uint16_t>() + mRawOffset.value_or(0)) / 10;
+    return (getHeightRaw() + mRawOffset.value_or(0)) / 10;
 }
 
 void BluetoothConnection::startMoveTorwards() const {
