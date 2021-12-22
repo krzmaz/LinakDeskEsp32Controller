@@ -51,6 +51,9 @@ BluetoothConnection::~BluetoothConnection() {
 bool BluetoothConnection::connect(const std::string& bluetoothAddress) {
     if (!BLEDevice::getInitialized()) {
         BLEDevice::init("BLE32");
+        // set bonding requirement so that the device stores the bonding info
+        BLEDevice::setSecurityAuth(BLE_SM_PAIR_AUTHREQ_BOND);
+        BLEDevice::setSecurityIOCap(BLE_HS_IO_KEYBOARD_ONLY);
     }
     auto connected = mBleClient->connect(NimBLEAddress(bluetoothAddress, BLE_ADDR_RANDOM));
     if (connected) {
