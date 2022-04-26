@@ -18,8 +18,10 @@ DeskController::~DeskController() {}
 
 bool DeskController::connect(std::string bluetoothAddress) {
     if (mConnection->isConnected()) {
+        Serial.println("[DeskController::connect] Already connected, disconnecting!");
         mConnection->disconnect();
     }
+    Serial.printf("[DeskController::connect] trying to connect to: %s\n", bluetoothAddress.c_str());
     return mConnection->connect(bluetoothAddress);
 }
 void DeskController::disconnect() { mConnection->disconnect(); }

@@ -15,6 +15,7 @@
 
 #include "html.h"
 #include <fauxmoESP.h>
+#include <TaskScheduler.h>
 
 #define DESK_NAME_MAX_LEN 32
 #define DESK_BT_ADDRESS_LEN 18
@@ -33,6 +34,22 @@ bool needsConfig = false;
 AsyncWebServer server(80);
 LinakDesk::DeskController controller = LinakDesk::DeskControllerFactory::make();
 fauxmoESP fauxmo;
+Scheduler runner;
+
+void checkConnection(){
+    auto isConnected = controller.isConnected();
+    Serial.printf("[checkConnection] (millis: %d), state: %d\n", millis(), isConnected);
+    if (!isConnected){
+        Serial.printf("[checkConnection] Not connected trying to reconnect!\n");
+        controller.connect(deskBtAddress);
+    }
+    if(!controller.isConnected()){
+        Serial.printf("[checkConnection] Reconnect unsuccessful, rebooting!\n");
+        ESP.restart();
+    }
+}
+
+Task checkConnectionTask(60000, TASK_FOREVER, &checkConnection);
 
 void moveToHeightHttpHandler(AsyncWebServerRequest* request) {
     if (request->hasParam("destination")) {
@@ -289,6 +306,8 @@ void setup() {
     WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 1); // enable brownout detector
 
     initFS();
+    runner.init();
+    runner.addTask(checkConnectionTask);
 
     wifiManagerSetup();
 
@@ -316,10 +335,12 @@ void setup() {
         setupWebServer();
         setupFauxmo();
     }
+    checkConnectionTask.enableDelayed(60000);
 }
 void loop() {
     delay(1);
     drd->loop();
     controller.loop();
     fauxmo.handle();
+    runner.execute();
 }
