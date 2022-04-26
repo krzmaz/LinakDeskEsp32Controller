@@ -1,4 +1,4 @@
-# LinakDeskEsp32Controller [![PlatformIO CI](https://github.com/TheRealMazur/LinakDeskEsp32Controller/actions/workflows/platformio_ci.yml/badge.svg?branch=main)](https://github.com/TheRealMazur/LinakDeskEsp32Controller/actions/workflows/platformio_ci.yml)
+# LinakDeskEsp32Controller [![PlatformIO CI](https://github.com/krzmaz/LinakDeskEsp32Controller/actions/workflows/platformio_ci.yml/badge.svg?branch=main)](https://github.com/krzmaz/LinakDeskEsp32Controller/actions/workflows/platformio_ci.yml)
 
 The goal of this project is creating an easy to use bluetooth bridge for my Ikea Idasen desk, that uses a Linak controller.
 
