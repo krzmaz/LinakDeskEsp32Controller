@@ -14,7 +14,12 @@ if not isfile(join(PLATFORM_DIR, ".patching-done")):
 
     assert isfile(original_file) and isfile(patched_file)
 
-    env.Execute("patch %s %s" % (original_file, patched_file))
+    # If the patching fails, you can change the platform package manually and create 
+    # a file called `.patching-done` to indicate that. For more details see:
+    # https://github.com/krzmaz/LinakDeskEsp32Controller/issues/13
+    if env.Execute("patch %s %s" % (original_file, patched_file)) != 0:
+        raise Exception("Problem while applying platform patches!\n\n"
+            "See scripts/apply_patches.py for more details!\n")
 
     def _touch(path):
         with open(path, "w") as fp:
