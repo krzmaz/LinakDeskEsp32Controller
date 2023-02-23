@@ -17,7 +17,7 @@ if not isfile(join(PLATFORM_DIR, ".patching-done")):
     # If the patching fails, you can change the platform package manually and create 
     # a file called `.patching-done` to indicate that. For more details see:
     # https://github.com/krzmaz/LinakDeskEsp32Controller/issues/13
-    if env.Execute("patch %s %s" % (original_file, patched_file)) != 0:
+    if env.Execute("patch --ignore-whitespace --fuzz 3 --binary %s %s" % (original_file, patched_file)) != 0:
         raise Exception("Problem while applying platform patches!\n\n"
             "See scripts/apply_patches.py for more details!\n")
 

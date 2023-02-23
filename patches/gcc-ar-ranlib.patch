@@ -1,10 +1,10 @@
 diff --git a/builder/main.py b/builder/main.py
-index 7802ec6..985ef81 100644
+index a6ca5b0..346d41f 100644
 --- a/builder/main.py
 +++ b/builder/main.py
-@@ -131,14 +131,14 @@ if mcu == "esp32c3":
- env.Replace(
-     __get_board_f_flash=_get_board_f_flash,
+@@ -203,14 +203,14 @@ env.Replace(
+     __get_board_flash_mode=_get_board_flash_mode,
+     __get_board_memory_type=_get_board_memory_type,
  
 -    AR="%s-elf-ar" % toolchain_arch,
 +    AR="%s-elf-gcc-ar" % toolchain_arch,
